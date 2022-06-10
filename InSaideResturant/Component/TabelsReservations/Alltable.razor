@@ -1,0 +1,63 @@
+﻿
+@inject IUnitAll db
+
+@if(Areas is not null)
+{
+    <div class="container row">
+        <div class="">
+            @foreach (var A in Areas)
+            {
+                if (A.Tables.Any(x=>!x.IsRreserved))
+                {
+                    <div class="text-right">
+                         <h4>منطقة : @A.NameArea</h4>
+                         <hr/>
+                    </div>
+                    foreach (var item in A.Tables.Where(x=>!x.IsRreserved))
+                    {
+                         <TableButton  eventid="getidtable" IDTable="@item.Id" CodeChair="@item.CountChair" CountChair="@item.CountChair">
+                         </TableButton>
+                    }
+                }
+            }
+        </div>
+    </div>
+}
+
+
+
+@code {
+
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+
+    [Parameter]
+    public int IdReservation { get; set; }
+
+    bool ISAdding = false;
+
+    [Parameter]
+    public List<Area>? Areas { get; set; }
+
+    [Parameter]
+    public EventCallback AddNow { get; set; }
+
+    async Task getidtable(int id)
+    {
+        TheTable Table = db.TheTables.Find(x => x.Id == id);
+        Table.IsRreserved = true;
+        db.TheTables.Update(Table);
+        var Addtable = new TablesReservation
+            {
+                IdTable = id,
+                IdRevervation = IdReservation
+            };
+        await db.TablesReservations.AddAsync(Addtable);
+
+        ISAdding = true;
+       await AddNow.InvokeAsync();
+    }
+}

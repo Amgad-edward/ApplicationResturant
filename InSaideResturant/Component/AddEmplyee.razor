@@ -1,0 +1,106 @@
+﻿
+@inject IUnitAll db
+
+<div class="container RightDiv">
+      <div class="row justify-content-between">
+           <div class="col-md-4">
+               <h3>اضافة موظف</h3>
+           </div>
+           <div>
+               <h3 class="text-info">Add Emplyee</h3>
+           </div>
+       </div>
+       <hr/>
+       <div class="mt-2 mb-4">
+           <EditForm Model="emplyees" OnValidSubmit="Addemp" >
+               <DataAnnotationsValidator></DataAnnotationsValidator>
+               <div class="row">
+                   <div class="col-md-5">
+                       <SelectRestourant SetIDResturant="GetID" restaurants="restaurant"></SelectRestourant>
+                       <div class="form-group text-right">
+                           <label>اسم الموظف</label>
+                           <InputText class="form-control" @bind-Value="emplyees.Name"></InputText>
+                       </div>
+                       <div class="form-group text-right">
+                           <label>الوظيفة</label>
+                           <InputText class="form-control" @bind-Value="emplyees.Jop"></InputText>
+                       </div>
+                       <div class="form-group text-right">
+                           <label>قيمة ساعة العمل</label>
+                           <InputNumber class="form-control" @bind-Value="emplyees.SalaryHour"></InputNumber>
+                       </div>
+                       <div class="form-group text-right">
+                           <label>تاريخ الميلاد</label>
+                           <InputDate TValue="DateOnly?" class="form-control" @bind-Value="emplyees.DateBirth"></InputDate>
+                       </div>
+                        <div class="form-group text-right">
+                           <label>تاريخ بداية العمل</label>
+                           <InputDate TValue="DateOnly?" class="form-control" @bind-Value="emplyees.DatestartWork"></InputDate>
+                       </div>
+                       <div class="form-group">
+                           <button type="submit" @onclick="async ()=> await AddingEmp.InvokeAsync()" class="btn btn-primary w-50">اضافة الموظف</button>
+                       </div>
+                   </div>
+               </div>
+               
+         </EditForm>
+         <div class="mt-2 text-right">
+             <h5 class="text-danger">@Message</h5>
+         </div>
+       </div>
+    @if (isAddemp)
+    {
+        <AddUser></AddUser>
+    }
+</div>
+
+
+@code {
+
+    List<RestaurantAndBranches> restaurant  { get; set; } =  new List<RestaurantAndBranches>(); 
+    Emplyees emplyees = new Emplyees();
+
+    [Parameter]
+    public EventCallback AddingEmp { get; set; }
+
+    int ids = -1;
+
+    string Message = "";
+
+    bool isAddemp = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetAllResturant();
+        await base.OnInitializedAsync();
+    }
+
+    async Task GetAllResturant()
+    {
+        var rest = await db.Restaurants.FindAllAsync();
+        restaurant = rest.ToList();
+    }
+
+    void Addemp()
+    {
+        if(ids <= 0)
+        {
+            Message = "برجاء اختيار المطعم الذة بة الموفظ";
+            return;
+        }
+        else
+        {
+            emplyees.Idresetaurant = ids;
+            db.Emplyees?.Add(emplyees);
+            emplyees = new Emplyees();
+            isAddemp = true;
+            Message = "تم ااضافة الموف بتجاح";
+        }
+    }
+
+    void GetID(int id)
+    {
+        this.ids = id;
+    }
+
+}

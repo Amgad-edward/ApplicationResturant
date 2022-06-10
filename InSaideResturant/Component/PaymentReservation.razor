@@ -1,0 +1,151 @@
+﻿@inject IUnitAll db
+
+@if(_reservation != null && calculation != null)
+{
+    <div class="container RightDiv">
+    <h5 class="text-black-50">تفاصيل حساب ترابيزة : @Table()</h5>
+    <hr />
+    <EditForm Model="pay">
+    <div class="row">
+  
+        <div class="col-md-12">
+                <DataAnnotationsValidator></DataAnnotationsValidator>
+                <SelectDropDown NameLabel="اختر طؤيقة الدفع" eventCallback="getpaymentsid" ></SelectDropDown>
+            @if(Payment == PaymentBy.Visa)
+            {
+                <div class="form-group RightDiv">
+                    <label>كود تاكيد الدفع الالى</label>
+                    <InputText class="form-control" @bind-Value="VisaCode_"></InputText>
+                </div>
+            }
+            <div class="form-group RightDiv">
+                <label>رقم الدفع</label>
+                 <input class="form-control" @bind-value="pay.CodeReceipt" readonly />
+            </div>
+            <div class="form-group">
+                <button @onclick="SavePayment" class="btn btn-success w-50" >دفـــع</button>
+            </div>
+        </div>
+    </div>
+    </EditForm>
+    <table class="table table-bordered table-bordered">
+        <thead class="thead-light">
+            <tr>
+                <th>الطلـــب</th>
+                <th>الحســاب</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var dish in _reservation.DishFoods)
+            {
+                <tr>
+                    <td>@dish.Dish.NameDish</td>
+                    <td>@dish.Dish.PriceBuy.ToMonye()</td>
+                </tr>
+            }
+            @foreach (var service in _reservation.ServiceReservations)
+            {
+                <tr>
+                    <td>@service.Service.ServiceName</td>
+                    <td>@calculation.CalcuServices(service.Service).ToMonye()</td>
+                </tr>
+            }
+            <tr class="text-danger">
+                <td><strong>الاجمالـــى</strong></td>
+                <td>@_reservation.TotalAll</td>
+            </tr>
+        </tbody>
+    </table>
+  
+</div>
+}
+
+
+
+@code {
+
+    [Parameter]
+    public Reservation? _reservation { get; set; }
+
+    [Parameter]
+    public EventCallback<Reservation> Done { get; set; }
+
+    CalculationServices? calculation = null;
+
+    string VisaCode_ = "";
+
+    PaymentBy  Payment { get; set; }
+
+    PayMoney pay = new PayMoney();
+
+
+    protected override void OnInitialized()
+    {
+        if(_reservation is not null)
+        {
+            calculation = new CalculationServices(_reservation);
+            pay.IdReservation = _reservation.Id;
+            pay.Idresetaurant = _reservation.Idresetaurant;
+            pay.PriceFood = _reservation.Totals;
+            pay.PriceServecis = _reservation.TotalServices;
+            Guid guidPayment = Guid.NewGuid();
+            pay.CodeReceipt = guidPayment.ToString();
+
+        }
+        base.OnInitialized();
+    }
+
+
+    void SavePayment()
+    {
+        pay.VisaCode = VisaCode_;
+        pay.paymentBy = Payment;
+        db.PayMoney?.Add(pay);
+        var Reseravtion = db.Reservations.Find(x => x.Id == _reservation.Id);
+        Reseravtion.IsPayment = true;
+        Reseravtion.TimeEnd = TimeOnly.FromDateTime(DateTime.Now);
+        db.Reservations.Update(Reseravtion);
+        db.TablesReservations.Update(
+            x => x.Table.IsRreserved = false, x => x.IdRevervation == _reservation.Id
+           , c=>c.Table);
+        Done.InvokeAsync(_reservation);
+        pay = new PayMoney();
+        VisaCode_ = "";
+    }
+
+    void getpaymentsid(PaymentBy _payment)
+    {
+      
+        this.Payment = _payment;
+        pay.paymentBy = _payment;
+    }
+
+
+    string Table()
+    {
+        if(_reservation != null)
+        {
+            if(_reservation.TablesReserved.Count() > 0)
+            {
+                if(_reservation.TablesReserved.Count() > 1)
+                {
+                    var Tables = "(";
+                    foreach (var T in _reservation.TablesReserved)
+                    {
+                        Tables += $"{T.Table.TableCode} - ";
+                    }
+                    Tables += ")";
+                    return Tables;
+                }
+                else
+                {
+                    return $"({_reservation.TablesReserved.FirstOrDefault().Table.TableCode})";
+                }
+
+            }
+        }
+        return string.Empty;
+    }
+
+
+}

@@ -1,0 +1,130 @@
+﻿
+@inject IUnitAll db
+
+
+<div class="container RightDiv">
+
+       <div class="row justify-content-between">
+           <div class="col-md-4">
+               <h3>اضافة المطعم</h3>
+           </div>
+           <div>
+               <h3 class="text-info">Add Restourant</h3>
+           </div>
+       </div>
+       <hr/>
+
+   <EditForm Model="rest" OnValidSubmit="AddRestourantdb">
+             <DataAnnotationsValidator></DataAnnotationsValidator>
+             <div class="card">
+                 <div class="card-body">
+                     <div class ="row RightDiv">
+                 <div class="col-md-7">
+                      <div class="form-group text-right">
+                         <label>اسم الفرع اول المطعم</label>
+                         <InputText class="form-control" @bind-Value="rest.NameAndBranch"></InputText>
+                     </div>
+                     <div class="form-group text-right">
+                         <label>ارقام الهاتف</label>
+                         <InputText class="form-control" @bind-Value="rest.Phones"></InputText>
+                     </div>
+                      <div class="form-group text-right">
+                         <label>العنوان</label>
+                         <InputTextArea class="form-control" @bind-Value="rest.Address"></InputTextArea>
+                     </div>
+                     <div class="form-group text-right">
+                         <label>الموقع على جوجل</label>
+                         <InputText class="form-control" @bind-Value="rest.LocationCode"></InputText>
+                     </div>
+                     <div class="custom-file">
+                         <InputFile class="custom-file-input" OnChange="getimage"></InputFile>
+                         <label class="custom-file-label">الصورة</label>
+                     </div>
+                     <div class="mt-4 form-group">
+                                @if (!lodding)
+                                {
+                                    <button type="submit" class="btn btn-primary w-50">اضافة</button>
+                                }
+                                else
+                                {
+                                   <div class="spinner-border text-primary" role="status">
+                                         <span class="sr-only">Loading...</span>
+                                   </div>
+                                }
+                   </div>
+                   <div class="mt-4 text-right">
+                       <h4 class="text-dark">@Message</h4>
+                   </div>
+
+                 </div>
+                 <div class ="col-md-4">
+                     <img src="@Image" class="img-fluid" />
+                     <div>
+                         <div>
+                             
+                         </div>
+                     </div>
+                 </div>
+               </div>
+               </div>
+             </div>
+   </EditForm>
+       
+</div>
+
+
+
+
+@code {
+
+    [Parameter]
+    public RestaurantAndBranches rest { get; set; } = new RestaurantAndBranches();
+
+    [Parameter]
+    public EventCallback getcallbacksave { get; set; }
+
+    string Image = "";
+    bool lodding = false;
+    bool Addrest = false;
+    string Message = "";
+    byte[] Filesbytes = null;
+
+    private async Task getimage(InputFileChangeEventArgs formFile)
+    {
+        if(formFile.FileCount > 0)
+        {
+            var type = "image/jpg";
+            var imagefile = await formFile.File.RequestImageFileAsync(type, 300, 300);
+            Filesbytes = new byte[imagefile.Size];
+            await imagefile.OpenReadStream().ReadAsync(Filesbytes);
+            Image = Filesbytes.ShowImage();
+        }
+        else
+        {
+            Message = "لم يتم اخيار الصورة";
+        }
+    }
+
+
+
+    private async Task AddRestourantdb()
+    {
+        lodding = true;
+        if(await db.Restaurants.AnyAsync(x=>x.NameAndBranch == rest.NameAndBranch || x.Address == rest.Address))
+        {
+            Message = "هذا الفرع مضاف مسبقا";
+            lodding = false;
+        }
+        else
+        {
+            if (Filesbytes != null)
+                rest.Photo = Filesbytes;
+
+            await db.Restaurants.AddAsync(rest);
+            await getcallbacksave.InvokeAsync();
+            Message = "تم اضافة الفرع بنجاح";
+            lodding = false;
+        }
+    }
+
+}

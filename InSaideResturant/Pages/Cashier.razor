@@ -1,0 +1,180 @@
+﻿@page "/cashier"
+@using InSaideResturant.Data
+@inject IUnitAll db
+@inject ISessionStorageService session
+@inject IToastService toast
+@using System.Timers
+
+<h3>Cashier</h3>
+ <h4 class="text-info">@timenow</h4>
+<hr />
+@if(reservations is not null)
+{
+    <div class="container RightDiv">
+        <table class="table table-bordered table-hover"> 
+            <thead class="thead-dark">
+                <tr>
+                <th>حساب ترابيزة</th>
+                <th>حساب الطلبات</th>
+                <th>حساب الخدمات</th>
+                <th>اجمالى المطلوب</th>
+                <th>###############</th>
+                </tr>
+            </thead>
+            <tbody>
+               @foreach (var context in reservations)
+                {
+                    <tr>
+                        <td>
+                           @{ new CalculationServices(context); }
+                            @if(context.TablesReserved.Count() > 0)
+                            {
+                                 @if(context.TablesReserved.Count() > 1)
+                                   {
+                                     <h5 class="text-info">
+                                        (
+                                       @foreach (var t in context.TablesReserved)
+                                        {
+                                         <span>@t.Table.TableCode ,</span>
+                                        }
+                                      )
+                                      </h5>
+                             }
+                             else
+                              {
+                                 <h5 class="text-info">(@context.TablesReserved.First().Table.TableCode)</h5>
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-danger">لم تم تحديد ترابيزة</p>
+                            }
+                        </td>
+                       <td>
+                           @context.Totals.ToMonye()
+                       </td>
+                       <td>
+                           @context.TotalServices.ToMonye()
+                       </td>
+                       <td>
+                           @context.TotalAll.ToMonye()
+                       </td>
+                       <td>
+                           <Button Thetype="Reservation" EventGetvalue="GetReservationsPayment" DataTarget="addPayments" Namestring="دفع حساب" Class="btn-success" Values="context"></Button>
+                       </td>
+                   </tr>
+               }
+            </tbody>
+        </table>
+    </div>
+}
+
+
+<!-- Modal -->
+<div class="modal fade" id="addPayments" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">دفع الحساب</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+         <div>
+         @if (ispayment)
+          {
+             <PaymentReservation Done="gettoprint" _reservation="ReservationToPayment"></PaymentReservation>
+          }
+       </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+@code {
+
+    UserLog? userLog = null;
+    List<Reservation>? reservations = null;
+    Reservation? ReservationToPayment = null;
+    int idrestourant;
+    string timenow = "";
+    bool ispayment = false;
+    Timer timer;
+    Timer timerdata;
+    protected override async Task OnInitializedAsync()
+    {
+        userLog = await session.GetItemAsync<UserLog>("getuser");
+        idrestourant = userLog.restourantId;
+        Update();
+        timenow = DateTime.Now.ToLongTimeString();
+        await base.OnInitializedAsync();
+        timer = new Timer();
+        timer.Interval = 1000;
+        timer.Enabled = true;
+        timer.Elapsed += updateTimer;
+        timerdata = new Timer(2200);
+        timerdata.Enabled = true;
+        timerdata.Elapsed += UpdateData;
+
+
+    }
+
+    void GetReservationsPayment(Reservation reservation)
+    {
+
+        this.ReservationToPayment = reservation;
+        ispayment = true;
+    }
+
+    void gettoprint(Reservation reservation)
+    {
+        toast.ShowSuccess("Done Payment");
+        ispayment = false;
+    }
+
+    void updateTimer(object? sender , ElapsedEventArgs e)
+    {
+        timenow = DateTime.Now.ToLongTimeString();
+        InvokeAsync(() =>
+        {
+            StateHasChanged();
+        });
+    }
+
+    void UpdateData(object? sender , ElapsedEventArgs e)
+    {
+        timerdata.Stop();
+        Update();
+        InvokeAsync(() =>
+        {
+            StateHasChanged();
+        });
+        timerdata.Start();
+
+    }
+
+
+
+
+
+    async Task Update()
+    {
+        var get = await db.Reservations?.INClude(s => s.ServiceReservations)
+                       .ThenInclude(ss => ss.Service)?.Include(d => d.DishFoods)
+                       .ThenInclude(f => f.Dish)?.Include(t => t.TablesReserved)
+                       .ThenInclude(tt => tt.Table).AsNoTracking()
+                       .Where(x => x.Idresetaurant == idrestourant  && !x.IsPayment && x.Date == DateOnly.FromDateTime(DateTime.Now))
+                       .ToListAsync();
+
+        reservations = get.Where(x => x.DishFoods.Any(s => s.ISDone)).ToList();                   
+    }
+
+
+}

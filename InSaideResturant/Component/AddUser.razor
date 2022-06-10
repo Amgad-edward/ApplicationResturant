@@ -1,0 +1,114 @@
+﻿
+@inject IUnitAll db
+
+
+<div class="container RightDiv">
+     <div class="row justify-content-between">
+           <div class="col-md-4">
+               <h3>اضافة مستخدم</h3>
+           </div>
+           <div>
+               <h3 class="text-info">Add User And Admin</h3>
+           </div>
+       </div>
+       <hr/>
+       <div class="row mb-4">
+
+           <div class="col-md-5">
+               <SelectRestourant SetIDResturant="GetidResturant" restaurants="restaurants"></SelectRestourant>
+               <Selectemplyees ChangSelectEmplyeeIof="GetIDEmplyee" IDResturant="IDResturant"></Selectemplyees>
+               <EditForm Model="logins" OnValidSubmit="AddthisUser">
+                   <DataAnnotationsValidator></DataAnnotationsValidator>
+                   <div class="form-group text-right">
+                       <label>اسم المستخدم</label>
+                       <InputText class="form-control" @bind-Value="logins.Username"></InputText>
+                   </div>
+                    <div class="form-group text-right">
+                       <label>كلمة السر</label>
+                      <input class="form-control" type="password" @bind-value="logins.Password" />
+                   </div>
+                     <div class="form-group text-right">
+                       <label>اعادة كلمة السر</label>
+                      <input class="form-control" type="password" @onchange="WritePassword" @bind-value:event="oninput" @bind-value="Re_password" />
+                   </div>
+                   <div class="form-group text-right">
+                     <span class="@(passwordincorrect ? "text-success" : "text-danger")">@MessPasssword</span>
+                  </div>
+                  <div class="text-right">
+                      <InputCheckbox class="custom-checkbox" @bind-Value="logins.ISAdmin"></InputCheckbox>
+                      <label class="custom-control-label">مدير</label>
+                  </div>
+                  <div class="form-group text-right">
+                      <button type="submit" class="btn btn-primary w-75">اضافة هذا المستخدم</button>
+                  </div>
+               </EditForm>
+               <div class="mt-2 mb-4 text-right">
+                   <h5 class="text-info">@Message</h5>
+               </div>
+           </div>
+       </div>
+
+</div>
+
+
+
+
+
+
+
+@code {
+
+    int IDResturant = -1;
+    int IDEmplyeeof = -1;
+    string Re_password = "";
+    bool passwordincorrect = false;
+    string Message = "";
+    string MessPasssword = "";
+    List<RestaurantAndBranches>? restaurants = new List<RestaurantAndBranches>();
+    Logins logins = new Logins();
+    protected override void OnInitialized()
+    {
+        restaurants = db.Restaurants?.FindAll().ToList();
+        base.OnInitialized();
+    }
+
+    void GetidResturant(int id)
+    {
+        this.IDResturant = id;
+    }
+
+    void GetIDEmplyee(int id)
+    {
+        this.IDEmplyeeof = id;
+    }
+
+    void WritePassword()
+    {
+       
+        if (logins.Password != Re_password)
+        {
+            MessPasssword = "كلمة السر غير متطابقة";
+            passwordincorrect = false;
+        }
+        else
+        {
+            MessPasssword = "كلمة السر  متطابقة";
+            passwordincorrect = true;
+        }
+    }
+
+    void AddthisUser()
+    {
+        if (passwordincorrect)
+        {
+            logins.IdEmplyee = IDEmplyeeof;
+            db.Logins?.Add(logins);
+            Message = "تم الاضافة بنجاح";
+        }
+        else
+        {
+            Message = "برجاء اعادة كتابة كلمة السر";
+        }
+    }
+
+}

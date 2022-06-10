@@ -1,0 +1,101 @@
+﻿@inject IUnitAll db
+
+
+
+@if(listnames.Count > 0)
+{
+    <div class="form-group text-right">
+    <label>اسم الموظف</label>
+    <select class="form-control" @bind="ID" @onclick="async ()=> await ChangSelectEmplyeeIof.InvokeAsync(ID)">
+        <option selected>--------------------</option>
+        @foreach (var item in listnames)
+        {
+            <option value="@item.id">@item.name</option>
+        }
+    </select>
+    </div>
+}
+else
+{
+    <h5 class="text-secondary text-right">لا يوجد</h5>
+}
+
+
+
+
+
+
+
+
+
+@code {
+
+
+    public int ID { get; set; }
+
+    List<Values> listnames = new List<Values>();
+
+    [Parameter]
+    public Expression<Func<Emplyees, bool>>? Predicte { get; set; } = null;
+
+    [Parameter]
+    public EventCallback<int> ChangSelectEmplyeeIof { get; set; }
+
+    int IDrest = -1;
+    [Parameter]
+    public int IDResturant
+    {
+        get
+        {
+            return IDrest;
+        }
+        set
+        {
+            IDrest = value;
+            getemplyess();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+
+
+
+    void getemplyess()
+    {
+        
+        if(Predicte is not null)
+        {
+            var Emplyees = db.Emplyees?.FindAll(Predicte).Select(x=>new { x.Id , x.Name });
+            if(Emplyees != null)
+            {
+                foreach (var item in Emplyees)
+                {
+                    listnames.Add(new Values { id = item.Id, name = item.Name });
+                }
+            }
+        }
+        else
+        {
+            var Emplyees = db.Emplyees?.FindAll(x=>x.Idresetaurant == IDrest).Select(x=>new { x.Id , x.Name });
+            if(Emplyees != null)
+            {
+                foreach (var item in Emplyees)
+                {
+                    listnames.Add(new Values { id = item.Id, name = item.Name });
+                }
+            }
+        }
+    }
+
+
+
+    class Values
+    {
+        public int id { get; set; }
+
+        public string? name { get; set; }
+    }
+}

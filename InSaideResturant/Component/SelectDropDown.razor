@@ -1,0 +1,27 @@
+﻿
+
+
+<div class="form-group RightDiv">
+    <label>@NameLabel</label>
+    <select class="form-control" @bind="ID" @onclick="async()=> await eventCallback.InvokeAsync(ID)">
+       <option selected>------اختر-------</option>
+       @foreach (var item in Enum.GetValues(typeof(PaymentBy)))
+       {
+          <option value="@item">@item.ToString()</option>
+       }
+    </select>
+</div>
+
+
+@code {
+
+
+    public PaymentBy ID { get; set; }
+
+    [Parameter]
+    public string? NameLabel { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<PaymentBy> eventCallback { get; set; }
+
+}

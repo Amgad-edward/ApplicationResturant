@@ -1,0 +1,190 @@
+﻿@using InSaideResturant.Data
+@using Blazored.Toast.Configuration;
+@inherits LayoutComponentBase
+@inject ISessionStorageService Session
+@inject IUnitAll data
+@inject NavigationManager Nav
+
+<PageTitle>
+    @if(userLog != null)
+    {
+        <span>@userLog.RestourantName</span>
+    }
+
+</PageTitle>
+
+@if (CreateDatabase)
+{
+   <div class="container">
+
+        <AddRestourant getcallbacksave="ISAddRest"></AddRestourant>
+        @if (ISAddRestorant)
+        {
+           <hr />
+           <AddEmplyee AddingEmp="ISAddEmplyee"></AddEmplyee>
+        }
+       
+    </div>
+}
+
+else
+{
+    @if (islog)
+    {
+        <div class="page">
+            <div class="sidebar">
+                <NavMenu />
+            </div>
+            <main>
+                <div class="top-row px-4">
+                    @if(userLog is not null && userLog.ISAdmin)
+                    {
+                        
+                    }
+                    else
+                    {
+                        <button @onclick="logoutuser" class="btn btn-light">logout</button>
+                    }
+                </div>
+
+                <article class="content px-4">
+                    @Body
+                </article>
+            </main>
+
+        </div>
+        <BlazoredToasts Position="ToastPosition.BottomLeft"
+                         Timeout="10" 
+                          IconType="IconType.FontAwesome"
+                          SuccessClass="success-toast-override"
+                            />
+}
+else
+{
+     <div class="container text-center mt-lg-5">
+            <h1 class="display-4"><span class="text-info">Wel</span>come</h1>
+            <hr/>
+            <h6>Application Amgad From Restaurant</h6>
+            <div class="row" style="margin-top:10%">
+                 <div class="col-md-6">
+                    <div class="card">
+                    <div class="card-header">
+                        Login
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Login</h5>
+                        <EditForm Model="User">
+                            <div class="row">
+                                <div class="col-md-10">
+                                    <div class= "form-text">
+                                        <label>Username</label>
+                                        <InputText class="form-control" @bind-Value="User.Username"></InputText>
+                                    </div>
+                                    <div class= "form-text">
+                                        <label>Password</label>
+                                        <InputText  class="form-control" @bind-Value="@User.Password"></InputText>
+                                    </div>
+                                    <div class="mt-3">
+                                        <button class="btn btn-primary" @onclick="Login">log</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </EditForm>
+                       <div class="mt-3">
+                        @{
+                            if (lodding)
+                            {
+                                <div class="spinner-border text-primary" role="status">
+                                 </div>
+                            }
+                            else
+                            {
+                                <h5 class="text-danger">@Mess</h5>
+                            }
+                        }
+                           
+                       </div>
+                    </div>
+                </div>
+               </div>
+               <div class="col-md-6 ">
+                  <div class="w-100 border-secondary border-left ml-3">
+                      <div class="w-100 ml-5">
+                           <div>
+                                 <img src="/image/Intro.jpg" class="img-thumbnail" />
+                            </div>
+                      </div>
+                  </div>
+               </div>
+              
+            </div>
+      </div>
+
+}
+}
+
+
+
+@code{
+
+
+    private Logins User = new Logins();
+    UserLog? userLog = null;
+    string Mess = "";
+    bool lodding = false;
+    bool islog = false;
+    bool CreateDatabase = false;
+    bool ISAddRestorant = false;
+    bool ISEmplyeeAdd = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CreateDatabase = data.Database.EnsureCreated();
+            islog = await Session.ContainKeyAsync("getuser");
+            StateHasChanged();
+        }
+    }
+
+    void logoutuser()
+    {
+        Session.ClearAsync();
+        Nav.NavigateTo("");
+    }
+
+
+
+
+    async Task Login()
+    {
+        lodding = true;
+        if(data.Logins.Any(x=>x.Username == User.Username && x.Password == User.Password))
+        {
+             Logins? log = await data.Logins.INClude(x=>x.emp).ThenInclude(r=>r.Restaurant)
+            .ThenInclude(s=>s.Services)
+            .FirstOrDefaultAsync(x => x.Username == User.Username && x.Password == User.Password);
+             userLog = log;
+            await Session.SetItemAsync<UserLog>("getuser", userLog);
+            islog = true;
+        }
+        else
+        {
+            Mess = "الاسم اول كلمة المرور غير صحيح";
+            islog = false;
+        }
+        lodding = false;
+    }
+
+
+
+    void ISAddRest()
+    {
+        ISAddRestorant = true;
+    }
+    void ISAddEmplyee()
+    {
+        ISEmplyeeAdd = true;
+    }
+
+}

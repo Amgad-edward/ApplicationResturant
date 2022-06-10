@@ -1,0 +1,68 @@
+﻿@inject IUnitAll db
+
+ <button @onclick="Done" class="btn btn-primary" ><i class="bi bi-check-all"></i></button>
+
+
+
+@code {
+
+    [Parameter]
+    public int idreservation { get; set; }
+
+    [Parameter]
+    public List<Service> _services { get; set; }
+
+
+    void Done()
+    {
+
+        var Res =  db.Reservations?.INClude(f => f.DishFoods)?
+                   .ThenInclude(a => a.Dish)?.ThenInclude(d => d.DetailsDishes)?
+                   .ThenInclude(p => p.Product)
+                   .FirstOrDefault(x => x.Id == idreservation);
+
+        if (Res is not null)
+        {
+
+            var Dishfood = Res.DishFoods?.Where(x=>!x.ISDone).ToList();
+            var DistinctProduct = Dishfood?.Select(x => x.Dish).SelectMany(z => z.DetailsDishes)
+                                  .Select(a => a.IdProduct).Distinct().ToList();
+            foreach (var ID in DistinctProduct)
+            {
+                var product = Dishfood.Select(s => s.Dish).SelectMany(z => z.DetailsDishes).Select(c => c.Product)
+                              .FirstOrDefault(x => x.Id == ID);
+
+                product.TotalWeightIN -= Dishfood.Select(d => d.Dish).SelectMany(q => q.DetailsDishes)
+                                         .Where(x => x.IdProduct == ID).ToList().Sum(ss => ss.CountWeight);
+            }
+
+            //var UpReservation = db.Reservations.Find(x => x.Id == idreservation);
+            Res.Timestart = TimeOnly.FromDateTime(DateTime.Now);
+            db.Saved();
+            db.DishRequireds?.Update(a => a.ISDone = true, x => x.IdReservation == idreservation && !x.ISDone);
+            if (_services.Any(x => x.IsFixed))
+            {
+                if (!isnotadd(idreservation))
+                {
+                    var Idservec = _services.Where(x => x.IsFixed).Select(x => x.Id).ToList();
+                    foreach (var IDservice in Idservec)
+                    {
+
+                        db.ServiceReservation.Add(new ServiceReservation
+                            {
+                                IdReservation = idreservation,
+                                IdService = IDservice
+                            });
+                    }
+                }
+            }
+        }
+    }
+
+    bool isnotadd(int idrese)
+    {
+        return db.ServiceReservation.INClude(s=>s.Service).Where(q=>q.IdReservation == idrese).AsNoTracking().AsEnumerable().Any(x => x.Service.IsFixed);
+    }
+
+
+}

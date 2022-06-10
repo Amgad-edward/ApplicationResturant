@@ -1,0 +1,73 @@
+﻿
+@inject IUnitAll db
+
+@if(Theservices is not null &&Theservices.Count > 0)
+{
+    <div class="container row RightDiv m-2">
+        @foreach (var S in Theservices)
+        {
+            <ButtonAddServiceCsutomer EventGetIdservice="Addserviceon" IdService="@S.Id" NameService="@S.ServiceName"></ButtonAddServiceCsutomer>
+        }
+    </div>
+}
+else
+{
+    <div class="alert alert-info" role="alert">
+           لا تــوجد خدمات اخرى للاضافة
+    </div>
+}
+
+
+
+
+
+
+@code {
+
+    List<Service>? Theservices = new List<Service>();
+
+    protected override void OnInitialized()
+    {
+        getservice();
+        base.OnInitialized();
+    }
+
+    [Parameter]
+    public int IDReservation { get; set; }
+
+    [Parameter]
+    public IEnumerable<Service>? ServicesRestourant { get; set; } 
+
+    [Parameter]
+    public EventCallback update { get; set; }
+
+
+    void getservice()
+    {
+        Theservices.Clear();
+        var ServiceNotFixe = ServicesRestourant.Where(x => !x.IsFixed).Select(x=>x.Id);
+        var serviecustomer = db.ServiceReservation?.INClude(s => s.Service).Where(x => x.IdReservation == IDReservation)
+                              .AsEnumerable().Where(x => !x.Service.IsFixed).Select(x => x.IdService);
+        if(serviecustomer != null)
+        {
+
+            var All = ServiceNotFixe.Except(serviecustomer);
+            foreach (var id in All)
+            {
+                Theservices?.Add(ServicesRestourant.FirstOrDefault(x => x.Id == id));
+            }
+        }
+        else
+        {
+            Theservices = ServicesRestourant.Where(x=>!x.IsFixed).ToList();
+        }
+    }
+
+    void Addserviceon(int idservice)
+    {
+        db.ServiceReservation.Add(new ServiceReservation { IdReservation = IDReservation, IdService = idservice });
+        getservice();
+        update.InvokeAsync();
+    }
+
+}

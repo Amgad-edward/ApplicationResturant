@@ -1,0 +1,50 @@
+﻿@inject IUnitAll db
+@using InSaideResturant.Data
+
+@if(_customers != null)
+{
+
+    <BlazoredTypeahead  @onselectionchange="async()=> await SelectCustomer.InvokeAsync(NameSelect.ID)"  @bind-Value="NameSelect"  SearchMethod="AutoCompletenames">
+        <SelectedTemplate>
+            @context.Name
+        </SelectedTemplate>
+        <ResultTemplate>
+            @context.Name
+        </ResultTemplate>
+    </BlazoredTypeahead>
+
+
+}
+
+
+@code {
+
+    List<AutoCompleteCusromerName>? _customers = new List<AutoCompleteCusromerName>();
+
+    AutoCompleteCusromerName NameSelect = new AutoCompleteCusromerName();
+
+    [Parameter]
+    public EventCallback<int> SelectCustomer { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var customers = await db.Customers.FindAllAsync();
+        foreach (var item in customers)
+            {
+                _customers.Add(new AutoCompleteCusromerName { ID = item.Id, Name = item.Name });
+            }
+        await base.OnInitializedAsync();
+    }
+
+
+    async Task<IEnumerable<AutoCompleteCusromerName>> AutoCompletenames(string text)
+    {
+        return await Task.FromResult(_customers.Where(x => x.Name.ToLower().Contains(text)));
+    }
+
+
+    
+
+
+    
+}

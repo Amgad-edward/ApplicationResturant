@@ -1,0 +1,62 @@
+﻿@typeparam itemtype
+
+
+@if(Rows is not null && Items is not null)
+{
+   
+    <table class="table table-bordered table-hover @AddClass">
+    <thead class="@Classheader">
+        <tr>@HeaderTable</tr>
+    </thead>
+        <tbody>
+            @if(Items.Count() > 0)
+            {
+             @foreach (var item in Items)
+               {
+                    <tr>@Rows(item)</tr>
+               }
+            }
+            else
+            {
+                <tr class="text-center">لا توجد بيانات</tr>
+            }
+        </tbody>
+
+    </table>
+}
+else
+{
+    <div class="card">
+        <div class="card-body text-center">
+             <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+             </div>
+            <h6 class="text-info">جارى التحميل</h6>
+       </div>
+   </div>
+}
+
+
+
+
+@code {
+
+    [Parameter]
+    public RenderFragment HeaderTable { get; set; }         
+
+    [Parameter]
+    public RenderFragment<itemtype>? Rows { get; set; }
+
+    [Parameter]
+    public IEnumerable<itemtype>? Items { get; set; }
+
+    [Parameter]
+    public string AddClass { get; set; } = "";
+
+    [Parameter]
+    public string Classheader { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<int> Eventgetvalue { get; set; }
+
+}

@@ -1,0 +1,72 @@
+﻿@using InSaideResturant.Data
+
+@inject ISessionStorageService session
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">@(log != null ? log.RestourantName : "Application")</a>
+        @if(log != null && log.Imagelogo is not null)
+        {
+            <img src="@log.Imagelogo.ShowImage()" class="img-fluid w-25" />
+        }
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+       
+
+    </div>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        @if(log.DataEntry || log.ISAdmin)
+        {
+            <div class="nav-item px-3">
+            <NavLink class="nav-link" href="home" Match="NavLinkMatch.All">
+                <span class="oi oi-home" aria-hidden="true"></span> Home
+            </NavLink>
+              </div>
+        }
+        @if(log.Kitchen || log.ISAdmin)
+        {
+          <div class="nav-item px-3">
+            <NavLink class="nav-link" href="kitchen" >
+                <span class="oi oi-plus" aria-hidden="true"></span> تجهيز طلبات 
+            </NavLink>
+          </div>
+        }
+       
+        @if(log.Cacher || log.ISAdmin)
+        {
+            <div class="nav-item px-3">
+            <NavLink class="nav-link" href="cashier">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> كاشير
+            </NavLink>
+            </div>
+        }
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    UserLog? log = new UserLog();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (await session.ContainKeyAsync("getuser"))
+        {
+            log = await session.GetItemAsync<UserLog>("getuser");
+        }
+        await base.OnInitializedAsync();
+    }
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+
+}

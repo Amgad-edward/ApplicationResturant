@@ -1,0 +1,145 @@
+﻿
+@inject IUnitAll db
+
+<div class="row RightDiv">
+    <div class="col-md-7">
+        <div class="form-group text-right">
+            <label>اسم الطلب</label>
+            <BlazoredTypeahead  @bind-Value="selectDish" SearchMethod="AutoComplete">
+               <SelectedTemplate>
+                   @context.NameDish
+               </SelectedTemplate>
+               <ResultTemplate>
+                   @context.NameDish &nbsp;  <span>@context.PriceBuy.ToMonye()</span> &nbsp; <span class="text-black-50">@(context.Available ? "متاح" : "غير متاح")</span>
+               </ResultTemplate>
+         </BlazoredTypeahead>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group text-right">
+            <label>عدد</label>
+            <input type="number" @bind-value="Count" min="1" max="10" class="form-control" />
+        </div>
+    </div>
+    <div class="col-md-2 mt-4">
+        <button @onclick="saveDish" class="btn btn-primary">طلب</button>
+    </div>
+</div>
+<hr />
+@if(requireds != null)
+{
+   <div class="RightDiv">
+    <Showtable Items="requireds">
+        <HeaderTable>
+           <th>اسم الصنف</th>
+           <th>السعر</th>
+           <th>ترابيزة</th>
+           <th>#######</th>
+        </HeaderTable>
+        <Rows>
+           <td>@context.Dish.NameDish</td>
+                <td>@context.Dish.PriceBuy.ToMonye()</td>
+                <td>
+                    @foreach (var t in @context.Reservation.TablesReserved)
+                    {
+                        <p>ترابيزة : @t.Table.TableCode </p>
+                    }
+                </td>
+                <td>
+                    <Button Thetype="int" EventGetvalue="deleterquset" Name="bi bi-trash"  Class="btn-danger" Values="context.Id"></Button>
+                </td>
+        </Rows>
+    </Showtable>
+</div>
+}
+
+
+
+
+
+@code {
+
+    [Inject]
+    public IToastService toast { get; set; }
+
+    List<DishFood> Dishs = new List<DishFood>();
+
+    IEnumerable<DishRequired>? requireds = null;
+
+    DishFood selectDish = new DishFood();
+
+    public int Count { get; set; }
+
+    [Parameter]
+    public int IDRevervation { get; set; } 
+
+    [Parameter]
+    public int Idrestourant { get; set; } 
+
+
+
+    [Parameter]
+    public EventCallback EventaddDish { get; set; }
+
+    protected override void OnInitialized()
+    {
+
+        var dischs = db.DishFoods.INClude(det => det.DetailsDishes).Where(x => x.Idresetaurant == Idrestourant);
+        Dishs = dischs.ToList();
+        getAllRequests();
+        base.OnInitialized();
+    }
+
+    async Task<IEnumerable<DishFood>> AutoComplete(string text)
+    {
+        return await Task.FromResult(Dishs.Where(x=>x.NameDish.ToLower().Contains(text)));
+    }
+
+    void getAllRequests()
+    {
+        requireds = db.DishRequireds?.INClude(d => d.Dish).Include(r=>r.Reservation)
+        .ThenInclude(t=>t.TablesReserved).ThenInclude(tt=>tt.Table)
+        .Where(x => x.IdReservation == IDRevervation);
+    }
+
+    void deleterquset(int id)
+    {
+        db.DishRequireds.Delete(id);
+        EventaddDish.InvokeAsync();
+    }
+
+    void saveDish()
+    {
+        List<DishRequired> dishRequireds = new List<DishRequired>();
+        if(Count > 0)
+        {
+            for (var i = 0; i < Count; i++)
+            {
+                if (selectDish.Available)
+                {
+                    dishRequireds.Add(new DishRequired
+                    {
+                        IdDish = selectDish.Id,
+                        IdReservation = IDRevervation,
+                    });
+                }
+                else
+                {
+                    toast.ShowInfo($"{selectDish.NameDish} غير متاح");
+                }
+
+            }
+            db.DishRequireds.Add(dishRequireds);
+            EventaddDish.InvokeAsync();
+            Count = 1;
+            selectDish = new DishFood();
+        }
+        else
+        {
+            toast.ShowInfo("برجاء اختار عدد الاطباق");
+        }
+    }
+
+   
+
+}

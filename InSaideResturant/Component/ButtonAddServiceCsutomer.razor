@@ -1,0 +1,40 @@
+﻿
+
+<style>
+
+    .serive{
+        width:150px;
+   /*     text-align:center;
+        background-image:url(/image/Services.png);
+        background-position:center;
+        background-repeat:no-repeat;
+        background-size:contain;*/
+
+    }
+
+</style>
+
+<button class="btn m-2" @onclick="async ()=> await EventGetIdservice.InvokeAsync(IdService)" >
+    <div class="text-dark serive row justify-content-between">
+        <div>
+            <h5><i class="bi bi-check2-circle text-success"></i>&nbsp; @NameService</h5>
+        </div>
+        <div>
+            <img src="/image/Services.png" style="width:31px" />
+        </div>
+    </div>
+</button>
+
+@code {
+
+    [Parameter]
+    public string? NameService { get; set; }
+
+    [Parameter]
+    public int IdService { get; set; }
+
+    [Parameter]
+    public EventCallback<int> EventGetIdservice { get; set; }
+
+
+}

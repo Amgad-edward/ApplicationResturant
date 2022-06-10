@@ -1,0 +1,40 @@
+﻿
+
+
+
+@if(restaurants is not null && restaurants.Count > 0)
+{
+   <div class="form-group text-right">
+        <label>@NameLable</label>
+        <select class="form-control" @bind="ID" @onclick="async ()=> await SetIDResturant.InvokeAsync(ID)">
+            <option selected>-------------</option>
+          @foreach (var item in restaurants)
+         {
+            <option value="@item.Id">@item.NameAndBranch</option>
+         }
+       </select>
+   </div>
+
+}
+else
+{
+    <h5 class="text-danger">لم يتم تسجيل اى فرع مطعم</h5>
+}
+
+
+@code{
+
+    [Parameter]
+    public int ID { get; set; } = -1;
+
+    [Parameter]
+    public List<RestaurantAndBranches>? restaurants { get; set; }
+
+    [Parameter]
+    public string NameLable { get; set; } = "اختر المطعم";
+
+    [Parameter]
+    public EventCallback<int> SetIDResturant { get; set; }
+       
+
+}

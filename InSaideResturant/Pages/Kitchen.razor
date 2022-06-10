@@ -1,0 +1,131 @@
+﻿@page "/kitchen"
+@using InSaideResturant.Data
+@using System.Timers
+@inject IUnitAll db
+@inject ISessionStorageService session
+@inject IToastService toast
+
+<PageTitle>المطبخ</PageTitle>
+
+<h1>تجهيز طلبات</h1>
+<hr />
+@if(reservations != null)
+{
+    @if (lodding)
+    {
+        <div class="spinner-border text-danger" role="status">
+              <span class="sr-only">Loading...</span>
+       </div>
+        <h5 class="text-danger">جارى تحميل....</h5>
+    }
+    else
+    {
+
+        <Showtable itemtype="Reservation" Classheader="thead-dark" Items="reservations">
+        <HeaderTable>
+            <th>طلب ترابيزة</th>
+            <th>الاطباق المطلوبة</th>
+            <th>تم التحضير</th>
+        </HeaderTable>
+        <Rows>
+            <td>
+                @if(context.TablesReserved.Count() > 0)
+                {
+                      @if(context.TablesReserved?.Count() > 1)
+                    {
+                    <p>ترابيزة : 
+                      @foreach (var t in context.TablesReserved)
+                        {
+                           <span>@t.Table.TableCode - </span>
+                        }
+                    </p>
+                    }
+                    else
+                      {
+                       <p>ترابيزة :
+                        @context.TablesReserved?.FirstOrDefault().Table.TableCode
+                       </p>
+                      }
+                }
+                else
+                {
+                    <p class="text-danger">لم يحدد رقم الترابيزة</p>
+                }
+            </td>
+            <td>
+                <ul>
+                @foreach (var dish in context.DishFoods.Where(x=>!x.ISDone))
+                {
+                    <li>@dish.Dish.NameDish </li>
+                }
+                </ul>
+            </td>
+            <td>
+                <DoneRequest idreservation="context.Id" _services="_services"></DoneRequest>
+            </td>
+        </Rows>
+      </Showtable>
+    }
+    
+}
+else
+{
+   <div class="alert alert-dark" role="alert">
+         لا توجد طلبات حتى الان
+   </div>
+}
+
+
+
+@code {
+
+    int IDResturant;
+    UserLog? userLog = null;
+    List<Reservation>? reservations = null;
+    List<Service>? _services = null;
+    Timer timer;
+    bool lodding = false;
+    protected override async Task OnInitializedAsync()
+    {
+        userLog = await session.GetItemAsync<UserLog>("getuser");
+        IDResturant = userLog.restourantId;
+        _services = userLog.Services.ToList();
+        await Update();
+        timer = new Timer(1500);
+        timer.Enabled = true;
+        timer.Elapsed += UpdateTimerData;
+        await base.OnInitializedAsync();
+    }
+
+
+
+
+    async Task<List<Reservation?>> GetReservations()
+    {
+        return await db.Reservations?.INClude(d => d.DishFoods)?
+            .ThenInclude(cc => cc.Dish)?.Include(t => t.TablesReserved)?
+            .ThenInclude(tt => tt.Table).AsNoTracking().Where(x => x.Idresetaurant == IDResturant  && x.Date == DateOnly.FromDateTime(DateTime.Now)).ToListAsync();
+
+    }
+
+    void UpdateTimerData(object? sender , ElapsedEventArgs e)
+    {
+        timer.Stop();
+        Update();
+        InvokeAsync(() => { StateHasChanged(); });
+        timer.Start();
+    }
+
+    async Task Update()
+    {
+        var Filter = await GetReservations();
+        reservations = Filter.Where(w => w.DishFoods.Any(x => !x.ISDone)).ToList();
+        _services = userLog.Services.ToList();
+    }
+
+    
+
+  
+
+}
+

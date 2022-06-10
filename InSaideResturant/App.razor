@@ -1,0 +1,74 @@
+﻿
+@using InSaideResturant.Pages
+@using InSaideResturant.Data;
+@using Blazored.SessionStorage;
+@inject ISessionStorageService session
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        @{
+            RouteData Route = routeData;
+            if (loggin)
+            {
+                if (!userLog.ISAdmin)
+                {
+                    if (userLog.Cacher)
+                    {
+                        if (routeData.PageType != typeof(Cashier))
+                        {
+                            Route = new RouteData(typeof(NotFound), routeData.RouteValues);
+                        }
+                      
+                    }
+                    else if (userLog.Kitchen)
+                    {
+                        if(routeData.PageType != typeof(Kitchen))
+                        {
+                            Route = new RouteData(typeof(NotFound),routeData.RouteValues);
+                        }
+                         
+                    }
+                    else if(userLog.Garson || userLog.DataEntry)
+                    {
+                        if(routeData.PageType != typeof(MyPage))
+                        {
+                            Route = new RouteData(typeof(NotFound),routeData.RouteValues);
+                        }
+                    }
+                   
+                }
+            
+          }
+            
+
+
+       }  
+      
+         <RouteView RouteData="@Route" DefaultLayout="@typeof(MainLayout)" />
+         <FocusOnNavigate RouteData="@Route" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+          <NotFound></NotFound>
+        </LayoutView>
+    </NotFound>
+</Router>
+
+
+@code{
+    bool loggin = false;
+    UserLog userLog = new UserLog();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            loggin = await session.ContainKeyAsync("getuser");
+            if (loggin)
+            {
+                userLog = await session.GetItemAsync<UserLog>("getuser");
+            }
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+}

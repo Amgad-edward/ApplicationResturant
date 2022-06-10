@@ -1,0 +1,31 @@
+﻿
+@typeparam Thetype
+
+
+<button titel="@Titel" class="btn @Class" data-toggle="modal" data-target="#@DataTarget" @onclick="async ()=> await EventGetvalue.InvokeAsync(Values)">
+   <i class="@Name"></i> @Namestring
+ </button>
+
+@code {
+    [Parameter]
+    public string Titel { get; set; } = "";
+
+    [Parameter]
+    public string Name { get; set; } = "";
+
+    [Parameter]
+    public string? Namestring { get; set; } = "";
+
+    [Parameter]
+    public string DataTarget { get; set; } = "";
+
+    [Parameter]
+    public string Class { get; set; } = "";
+
+    [Parameter]
+    public Thetype Values { get; set; }
+
+    [Parameter]
+    public EventCallback<Thetype> EventGetvalue { get; set; }
+
+}

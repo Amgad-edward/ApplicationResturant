@@ -1,0 +1,340 @@
+﻿@page "/home"
+@using InSaideResturant.Data
+@inject ISessionStorageService session
+@inject IUnitAll db
+
+
+<PageTitle>@userLog.RestourantName</PageTitle>
+
+<div class="row justify-content-between">
+     <div>
+         <h1>Hello, @userLog.NameUser</h1>
+     </div>
+    <h4 class="mt-3 mr-5 text-info">صفحة الحجز</h4>
+</div>
+<hr />
+<div class="row RightDiv">
+    <div class="col-md-4 mr-5">
+        <div class="form-group text-right">
+             <label>اسم العميل</label>
+             <AutoCompleteCustomer SelectCustomer="GetCustomer"></AutoCompleteCustomer>
+        </div>
+        <button class="btn btn-primary w-50" @onclick="Addreservations">حجز</button>
+    </div>
+</div>
+
+<hr />
+<div class="container RightDiv">
+    <h4 class="text-right">جدول حجوزات اليوم</h4>
+    <hr />
+    <table class="table table-bordered table-hover">
+        <thead class="thead-dark">
+            <tr>
+                <th>اسم العميل</th>
+                <th>وقت الحجز</th>
+                 <th>ترابيزة</th>
+                 <th>المطلوب</th>
+                 <th>خدمات مضافة</th>
+                 <th>اجمالى الحساب</th>
+                 <th>#######</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Reservations)
+            {
+                <tr class="text-right">
+                    <td>@(item.CustomerId.HasValue ? item.Customer.Name : "عميل")</td>
+                    <td>@item.Date - @item.Timestart</td>
+                    <td>
+                        @if (item.TablesReserved.Any())
+                        {
+                            <div class="text-right">
+                             <h5>منطقة : @item.TablesReserved.First().Table.Area.NameArea - عدد افراد : @item.TablesReserved.Sum(x=>x.Table.CountChair) - كرسى</h5>
+                            @foreach (var table in item.TablesReserved)
+                            {
+                                <p>* ترابيزة رقم :  @table.Table.TableCode | <Button EventGetvalue="deleteTableReservations" Titel="الغاء هذة التربيزة" Name="bi bi-trash" Thetype="int" Class="btn-danger" Values="table.Id" ></Button></p>
+                            }
+                            </div>
+                        }
+                        else
+                        {
+                            <span>لم يتم التحديد حتى الان</span>
+                        }
+                    </td>
+                    <td>
+                        @if (item.DishFoods.Any())
+                        {
+                            <ul>
+                               @foreach (var Dish in item.DishFoods)
+                               {
+                                   <li>@Dish.Dish.NameDish</li>
+                               }
+                            </ul>
+                        }
+                        else
+                        {
+                            <span class="text-info">لم يتم تسجيل اى طلب حتى الان</span>
+                        }
+                    </td>
+                    <td>
+                        @if(item.ServiceReservations != null)
+                        {
+                            <div class="text-right">
+                                <p class="text-info">خدمات مضافة</p>
+                                <ul>
+                                    @foreach (var service in item.ServiceReservations)
+                                    {
+                                        @if (!service.Service.IsFixed)
+                                        {
+                                           <li>@service.Service.ServiceName ->  <Button EventGetvalue="deleteserviceadd" Thetype="int" Values="service.Id" Class="btn-link" Namestring="حذف" ></Button></li>
+                                        }
+
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </td>
+                    <td class="text-danger">
+                        @item.TotalAll.ToMonye()
+                    </td>
+                    <td>
+                        <Button Thetype="int?" Name="bi bi-trash" Values="@item.Id" EventGetvalue="DeleteReservation" Class="btn-outline-danger" Titel="حذف هذا الحجز" >
+                        </Button> 
+                        <Button Thetype="int?" DataTarget="tablesAllowd" Name="bi bi-file-spreadsheet" Values="@item.Id" EventGetvalue="GetIdToTables" Class="btn-outline-info" Titel="حجز ترابيزات" >
+                        </Button>
+                         <Button Thetype="int?" DataTarget="AddDichs" Name="bi bi-egg-fried" Values="@item.Id" EventGetvalue="GetIdToTables" Class="btn-outline-info" Titel="اضافة طلبات" >
+                         </Button>
+                        @if(_services != null)
+                        {
+                             <Button Thetype="int?" DataTarget="Addservice" Name="bi bi-bullseye" Values="@item.Id" EventGetvalue="GetIdToTables" Class="btn-outline-info" Titel="اضافة خدمات" >
+                            </Button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+
+<!-- Modal -->
+<div class="modal fade" id="tablesAllowd" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="staticBackdropLabel">اضافة ترابيزات</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+         <div class="container">
+            @if (ShowTable)
+             {
+                 <Alltable AddNow="AddingTable"  IdReservation="idReservation.Value" Areas="GetAreas().ToList()" ></Alltable>
+             }
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="AddDichs" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="staticBackdropLabel">اضافة طلبات</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+         <div class="container">
+            @if (ShowTable)
+               {
+                  <DishReservation EventaddDish="UpdateData"  IDRevervation="idReservation.Value" Idrestourant="idrestourant.Value" />    
+               }
+           </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="Addservice" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="staticBackdropLabel">اضافة خدمة</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+         <div class="container">
+            @if (ShowTable)
+               {
+                   <AddServiceToCustomer update="UpdateData" IDReservation="idReservation.Value" ServicesRestourant="_services"></AddServiceToCustomer>
+               }
+           </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+@code{
+
+
+    UserLog userLog = new UserLog();
+    List<Reservation> Reservations = new List<Reservation>();
+    IEnumerable<Service>? _services = null;
+
+    [Inject]
+    public IToastService toast { get; set; }
+
+    bool ShowTable = false;
+    int IDCustomert = -1 ;
+    int? idrestourant;
+    int? idReservation;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (await session.ContainKeyAsync("getuser"))
+        {
+            userLog = await session.GetItemAsync<UserLog>("getuser");
+            idrestourant = userLog.restourantId;
+            _services = userLog.Services;
+            UpdateData();
+        }
+
+
+    }
+
+    void deleteTableReservations(int id)
+    {
+        var Table = db.TablesReservations.Find(x => x.Id == id);
+        if(Table != null)
+        {
+            var TheTable = db.TheTables.Find(Table.IdTable);
+            TheTable.IsRreserved = false;
+            db.TheTables.Update(TheTable);
+            db.TablesReservations.Delete(Table.Id);
+            UpdateData();
+            toast.ShowInfo("تم حذف بنجاح");
+        }
+    }
+
+    void deleteserviceadd(int id)
+    {
+        db.ServiceReservation.Delete(id);
+        UpdateData();
+    }
+
+    void UpdateData()
+    {
+        GetReservation();
+        _services = userLog.Services;
+    }
+
+
+
+    IEnumerable<Area> GetAreas()
+    {
+        var getares =  db.Areas.INClude(t => t.Tables).AsNoTracking()
+        .Where(x => x.Idresetaurant == idrestourant.Value);
+
+        return getares;
+    }
+
+    void GetIdToTables(int? id)
+    {
+        this.idReservation = id;
+        ShowTable = true;
+    }
+
+    void GetReservation()
+    {
+        if (idrestourant.HasValue)
+        {
+            Reservations = db.Reservations.INClude(x=>x.Customer).Include(t=>t.TablesReserved)
+            .ThenInclude(table=>table.Table).ThenInclude(ar=>ar.Area).Include(oreder=>oreder.DishFoods)
+            .ThenInclude(dic=>dic.Dish).Include(s=>s.ServiceReservations).ThenInclude(ss=>ss.Service)
+            .Where(x => x.Idresetaurant == idrestourant.Value&& !x.IsPayment && x.Date == DateOnly.FromDateTime(DateTime.Now)).ToList();
+        }
+    }
+
+    void Addreservations()
+    {
+        int? idcust = null;
+        if (IDCustomert > 0)
+        {
+            idcust = IDCustomert;
+        }
+
+        var Reservation = new Reservation
+        {
+            Idresetaurant = idrestourant.Value,
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Timestart = TimeOnly.FromDateTime(DateTime.Now),
+            CustomerId = idcust.HasValue ? idcust.Value : null
+        };
+
+        db.Reservations.Add(Reservation);
+
+        UpdateData();
+    }
+
+    void DeleteReservation(int? id)
+    {
+
+        if(id != null)
+        {
+            var Reservat = db.Reservations.INClude(d => d.DishFoods).FirstOrDefault(x => x.Id == id.Value);
+            if(Reservat != null)
+            {
+                if (!Reservat.DishFoods.Any())
+                {
+                    db.Reservations.Delete(Reservat);
+                    UpdateData();
+                    toast.ShowSuccess("تم حذف هذا الحجز بنجاح");
+                }
+                else
+                {
+                    toast.ShowWarning("لا يمكن حذف حجز مازل بة طلبات قم بالغا الطلبات");
+                }
+            }
+        }
+
+    }
+
+    void AddingTable()
+    {
+        UpdateData();
+        GetAreas();
+    }
+
+    void GetCustomer(int id)
+    {
+        this.IDCustomert = id;
+    }
+
+   
+
+}
